@@ -5,3 +5,5 @@ Complete rewrite of Pinkie Pie's TEN mod that gets rid of various race condition
 Added support for switching between multi bravery or cane nos
 Added support for character saving
 Added support for switching between fish fritters or fish steak
+
+USE !nos or /8 nos <brave/cane/power/crit>
