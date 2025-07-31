@@ -1,14 +1,14 @@
 {
-    "name": "true-everful-nostrum",
-    "author": "Caali",
-    "description": "Ensures that your Elite/Tera Club Everful Nostrum/Noctenium is up 100% of the time.",
-    "version": "2.2",
+    "name": "true-everful-nostrum (ARK-TERA)",
+    "author": "Caali / Khaslana",
+    "description": "Ensures that your Elite/Tera Club Everful Nostrum/Food ctenium is up 100% of the time.",
+    "version": "1",
     "options": {
-        "cliName": "TEN",
-        "guiName": "True Everful Nostrum",
+        "cliName": "ARK-TEN",
+        "guiName": "True Everful Nostrum (ARK)",
         "settingsVersion": 1,
         "settingsFile": "config.json",
         "settingsMigrator": "settings_migrator.js"
     },
-    "servers": ["https://raw.githubusercontent.com/tera-toolbox-mods/true-everful-nostrum/master/"]
+    "servers": ["https://raw.githubusercontent.com/arunkai-tera/ark-nostrum/main/"]
 }
