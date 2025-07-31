@@ -1,10 +1,12 @@
 {
-	"files": {
-		"module.json": "295517b013acf466b6806935d3041d2ebd261a4a19aac3f4591523c97b8b4919",
-		"index.js": "88cf8e434e78c7535e5e6300736f872e292682b048041c09372bc8ea1b62107d",
-		"settings_migrator.js": "c10253bab772fe48794d800b01f573654d1261a26cf872cddea1a66994e249a8",
-		"settings_structure.js": "4d2ea32b6c61e109d1ee2167a365330ce5ab5d4cb826aec94c5c123eb5dea503",
-		"LICENSE": "589ed823e9a84c56feb95ac58e7cf384626b9cbf4fda2a907bc36e103de1bad2",
-		"README.md": "0b62f626da52412bc9d9e500615028a463b6566c6d8f773ceb855802883b434f"
-	}
+    "files": {
+        "config.json": "c754c4b3cd45985bb42e0af3c44c33c23059b2015366a28320f71508d7457094",
+        "index.js": "220586f01eb1e4a999d9edcac53fcf6cf33639e419d7b9835103d86e21546c1b",
+        "mode_settings.js": "fd07b6465e2dcbe7cc5a6f41b79a4a52ec9b16f25acee02312e6f6a6d33055b1",
+        "module.config.json": "fccfa1f9e19b11a6d58abbc07369f696ed9ea3873e263f6a2adf8e04d672d4d4",
+        "module.json": "4dc04402eb8c026228bed9908019b8745ff9c2203720018c110a577facdc8c0a",
+        "README.md": "f0b63fd06e5631b335f96c5e47784ca658531b841907206eef45045fdd3cf38a",
+        "settings_migrator.js": "c10253bab772fe48794d800b01f573654d1261a26cf872cddea1a66994e249a8",
+        "settings_structure.js": "4d2ea32b6c61e109d1ee2167a365330ce5ab5d4cb826aec94c5c123eb5dea503"
+    }
 }
