@@ -14,25 +14,21 @@ function getBuffsNostrum(settings) {
 }
 
 function getItemsFood(settings) {
-    if (settings.foodMode === 'power') return [206015];
-    if (settings.foodMode === 'crit') return [206014];
-    return [206015];
+    return [settings.foodMode === 'power' ? 206015 : 206014];
 }
 
 function getBuffsFood(settings) {
-    if (settings.foodMode === 'power') return [70233];
-    if (settings.foodMode === 'crit') return [70232];
-    return [70233];
+    return [settings.foodMode === 'power' ? 70233 : 70232];
 }
 
 function ClientMod(mod) {
     this.nostrum = [];
-    this.Food = [];
+    this.food = [];
 
     mod.clientInterface.once('ready', async () => {
         const modeSettings = loadModeSettings(mod);
         this.nostrum = (await mod.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
-        this.Food = (await mod.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
+        this.food = (await mod.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
     });
 }
 
@@ -46,14 +42,14 @@ function NetworkMod(mod) {
 
     let modeSettings = null;
     let nostrum_item = null;
-    let Food_item = null;
+    let food_item = null;
     let currentBuffsNostrum = [];
     let currentBuffsFood = [];
     let lastPremiumSets = [];
 
     function updatePremiumItems() {
         nostrum_item = null;
-        Food_item = null;
+        food_item = null;
 
         const validNostrumIds = getItemsNostrum(modeSettings);
         const validFoodIds = getItemsFood(modeSettings);
@@ -71,9 +67,9 @@ function NetworkMod(mod) {
                         };
                     }
                 } else if (validFoodIds.includes(id)) {
-                    const match = mod.clientMod.Food.find(item => item.id === id);
+                    const match = mod.clientMod.food.find(item => item.id === id);
                     if (match) {
-                        Food_item = {
+                        food_item = {
                             data: match,
                             packet: { set: set.id, slot: entry.slot, type: entry.type, id }
                         };
@@ -90,7 +86,7 @@ function NetworkMod(mod) {
 
     mod.hook('S_PREMIUM_SLOT_OFF', 'event', () => {
         nostrum_item = null;
-        Food_item = null;
+        food_item = null;
     });
 
     function useItem(item) {
@@ -107,7 +103,7 @@ function NetworkMod(mod) {
     function useFood() {
         if (BUFFS_Food_STRONGER.some(buff => abnormalityDuration(buff) > 0n)) return;
         if (currentBuffsFood.some(buff => abnormalityDuration(buff) > BigInt(60000))) return;
-        useItem(Food_item);
+        useItem(food_item);
     }
 
     function usePremiumItems() {
@@ -125,7 +121,7 @@ function NetworkMod(mod) {
                 const msg = mod.parseSystemMessage(event.message);
                 if (msg && (msg.id === 'SMT_ITEM_USED' || msg.id === 'SMT_CANT_USE_ITEM_COOLTIME')) {
                     if (mod.clientMod.nostrum.some(item => msg.tokens.ItemName === `@item:${item.id}`) ||
-                        mod.clientMod.Food.some(item => msg.tokens.ItemName === `@item:${item.id}`)) return false;
+                        mod.clientMod.food.some(item => msg.tokens.ItemName === `@item:${item.id}`)) return false;
                 }
             });
         }
@@ -145,21 +141,24 @@ function NetworkMod(mod) {
     async function reloadItems() {
         const nostrumData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel']);
         mod.clientMod.nostrum = nostrumData.map(result => result.attributes);
-        const FoodData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel']);
-        mod.clientMod.Food = FoodData.map(result => result.attributes);
+        const foodData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel']);
+        mod.clientMod.food = foodData.map(result => result.attributes);
     }
 
     mod.game.on('enter_game', () => {
         modeSettings = loadModeSettings(mod);
         currentBuffsNostrum = getBuffsNostrum(modeSettings);
         currentBuffsFood = getBuffsFood(modeSettings);
-        start();
+        reloadItems().then(() => {
+            updatePremiumItems();
+            start();
+        });
     });
 
     mod.game.on('leave_game', () => {
         stop();
         nostrum_item = null;
-        Food_item = null;
+        food_item = null;
     });
 
     mod.game.me.on('resurrect', () => start());
@@ -172,8 +171,8 @@ function NetworkMod(mod) {
                 mod.command.message(mod.settings.enabled ? 'enabled' : 'disabled');
             }
         },
-        on() { mod.settings.enabled = true; mod.command.message('enabled'); },
-        off() { mod.settings.enabled = false; mod.command.message('disabled'); },
+        on() { mod.settings.enabled = true; mod.command.message('Enabled'); },
+        off() { mod.settings.enabled = false; mod.command.message('Disabled'); },
         brave() {
             modeSettings.nostrumMode = 'brave';
             saveModeSettings(mod, modeSettings);
@@ -183,7 +182,7 @@ function NetworkMod(mod) {
                 if (nostrum_item) {
                     useItem(nostrum_item);
                     mod.command.message('Nos: Multi Bravery');
-                } else mod.command.message('An error has occured.');
+                } else mod.command.message('An error has occurred.');
             });
         },
         cane() {
@@ -195,7 +194,7 @@ function NetworkMod(mod) {
                 if (nostrum_item) {
                     useItem(nostrum_item);
                     mod.command.message('Nos: Multi Canephora');
-                } else mod.command.message('An error has occured.');
+                } else mod.command.message('An error has occurred.');
             });
         },
         power() {
@@ -204,10 +203,10 @@ function NetworkMod(mod) {
             currentBuffsFood = getBuffsFood(modeSettings);
             reloadItems().then(() => {
                 updatePremiumItems();
-                if (Food_item) {
-                    useItem(Food_item);
+                if (food_item) {
+                    useItem(food_item);
                     mod.command.message('Food: Power');
-                } else mod.command.message('An error has occured.');
+                } else mod.command.message('An error has occurred.');
             });
         },
         crit() {
@@ -216,10 +215,10 @@ function NetworkMod(mod) {
             currentBuffsFood = getBuffsFood(modeSettings);
             reloadItems().then(() => {
                 updatePremiumItems();
-                if (Food_item) {
-                    useItem(Food_item);
+                if (food_item) {
+                    useItem(food_item);
                     mod.command.message('Food: Crit');
-                } else mod.command.message('An error has occured.');
+                } else mod.command.message('An error has occurred.');
             });
         }
     });
