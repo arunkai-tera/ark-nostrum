@@ -1,0 +1,14 @@
+{
+    "name": "true-everful-nostrum (ARK-TERA)",
+    "author": "Caali / Khaslana",
+    "description": "Ensures that your Elite/Tera Club Everful Nostrum/Food is up 100% of the time.",
+    "version": "1",
+    "options": {
+        "cliName": "ARK-TEN",
+        "guiName": "True Everful Nostrum (ARK)",
+        "settingsVersion": 1,
+        "settingsFile": "config.json",
+        "settingsMigrator": "settings_migrator.js"
+    },
+    "servers": ["https://raw.githubusercontent.com/arunkai-tera/ark-nostrum/main/"]
+}
