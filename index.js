@@ -1,7 +1,7 @@
 const { loadModeSettings, saveModeSettings } = require('./mode_settings');
 const SettingsUI = require('tera-mod-ui').Settings;
 
-const BUFFS_Food_STRONGER = [70222, 70231, 70242];
+const BUFFS_Food_STRONGER = [70222, 70231, 70241, 70242];
 const BUFF_RES_INVINCIBLE = 1134;
 const BUFF_PHOENIX = 6007;
 
