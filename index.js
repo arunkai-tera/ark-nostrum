@@ -3,7 +3,7 @@ const SettingsUI = require('tera-mod-ui').Settings;
 
 const BUFFS_Food_STRONGER = [70222, 70231, 70241, 70242];
 const BUFF_RES_INVINCIBLE = 1134;
-const BUFF_PHOENIX = 6007;
+const BUFFS_PHOENIX = [6006, 6007, 6016]; // Changed to array with all phoenix buffs
 
 function getItemsNostrum(settings) {
     return settings.nostrumMode === 'brave' ? [999000] : [999001];
@@ -27,8 +27,12 @@ function ClientMod(mod) {
 
     mod.clientInterface.once('ready', async () => {
         const modeSettings = loadModeSettings(mod);
-        this.nostrum = (await mod.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
-        this.food = (await mod.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
+        try {
+            this.nostrum = (await mod.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
+            this.food = (await mod.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel'])).map(result => result.attributes);
+        } catch (error) {
+            mod.error('Failed to load client data:', error);
+        }
     });
 }
 
@@ -46,19 +50,25 @@ function NetworkMod(mod) {
     let currentBuffsNostrum = [];
     let currentBuffsFood = [];
     let lastPremiumSets = [];
+    let premiumDataReceived = false; // FIX: Track if premium data has been received
 
     function updatePremiumItems() {
         nostrum_item = null;
         food_item = null;
 
+        if (!modeSettings) return;
+
         const validNostrumIds = getItemsNostrum(modeSettings);
         const validFoodIds = getItemsFood(modeSettings);
+
+        if (!lastPremiumSets || lastPremiumSets.length === 0) return;
 
         lastPremiumSets.forEach(set => {
             set.inventory.filter(entry => entry.type === 1).forEach(entry => {
                 const id = entry.id;
 
                 if (validNostrumIds.includes(id)) {
+                    if (!mod.clientMod || !mod.clientMod.nostrum) return;
                     const match = mod.clientMod.nostrum.find(item => item.id === id);
                     if (match) {
                         nostrum_item = {
@@ -67,6 +77,7 @@ function NetworkMod(mod) {
                         };
                     }
                 } else if (validFoodIds.includes(id)) {
+                    if (!mod.clientMod || !mod.clientMod.food) return;
                     const match = mod.clientMod.food.find(item => item.id === id);
                     if (match) {
                         food_item = {
@@ -80,11 +91,13 @@ function NetworkMod(mod) {
     }
 
     mod.hook('S_PREMIUM_SLOT_DATALIST', 2, event => {
+        premiumDataReceived = true; // FIX: Set flag when premium data arrives
         lastPremiumSets = event.sets;
         updatePremiumItems();
     });
 
     mod.hook('S_PREMIUM_SLOT_OFF', 'event', () => {
+        premiumDataReceived = false; // FIX: Reset flag when premium slots disabled
         nostrum_item = null;
         food_item = null;
     });
@@ -96,7 +109,7 @@ function NetworkMod(mod) {
 
     function useNostrum() {
         if (currentBuffsNostrum.some(buff => abnormalityDuration(buff) > BigInt(60000))) return;
-        if ((mod.settings.keep_resurrection_invincibility && abnormalityDuration(BUFF_RES_INVINCIBLE) > 0n) || abnormalityDuration(BUFF_PHOENIX) > 0n) return;
+        if ((mod.settings.keep_resurrection_invincibility && abnormalityDuration(BUFF_RES_INVINCIBLE) > 0n) || BUFFS_PHOENIX.some(buff => abnormalityDuration(buff) > 0n)) return;
         useItem(nostrum_item);
     }
 
@@ -109,6 +122,9 @@ function NetworkMod(mod) {
     function usePremiumItems() {
         if (!mod.settings.enabled || (mod.settings.dungeon_only && !mod.game.me.inDungeon) || (!mod.settings.civil_unrest && mod.game.me.inCivilUnrest)) return;
         if (!mod.game.isIngame || mod.game.isInLoadingScreen || !mod.game.me.alive || mod.game.me.mounted || mod.game.me.inBattleground || mod.game.contract.active) return;
+        
+        if (!premiumDataReceived) return;
+        
         useNostrum();
         useFood();
     }
@@ -139,19 +155,29 @@ function NetworkMod(mod) {
     function isRunning() { return !!interval; }
 
     async function reloadItems() {
-        const nostrumData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel']);
-        mod.clientMod.nostrum = nostrumData.map(result => result.attributes);
-        const foodData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel']);
-        mod.clientMod.food = foodData.map(result => result.attributes);
+        try {
+            const nostrumData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsNostrum(modeSettings), true, false, ['id', 'requiredLevel']);
+            mod.clientMod.nostrum = nostrumData.map(result => result.attributes);
+            const foodData = await mod.clientInterface.queryData('/ItemData/Item@id=?/', getItemsFood(modeSettings), true, false, ['id', 'requiredLevel']);
+            mod.clientMod.food = foodData.map(result => result.attributes);
+        } catch (error) {
+            mod.error('Failed to reload items:', error);
+        }
     }
 
     mod.game.on('enter_game', () => {
         modeSettings = loadModeSettings(mod);
         currentBuffsNostrum = getBuffsNostrum(modeSettings);
         currentBuffsFood = getBuffsFood(modeSettings);
+        premiumDataReceived = false;
+        nostrum_item = null;
+        food_item = null;
+        
         reloadItems().then(() => {
             updatePremiumItems();
             start();
+        }).catch(error => {
+            mod.error('Failed in enter_game promise chain:', error);
         });
     });
 
@@ -159,6 +185,7 @@ function NetworkMod(mod) {
         stop();
         nostrum_item = null;
         food_item = null;
+        premiumDataReceived = false;
     });
 
     mod.game.me.on('resurrect', () => start());
